@@ -12,46 +12,54 @@ import (
 
 func UploadFile (c *gin.Context) {
 	DB := common.GetDB()
-	name := c.PostForm("name")
 	userId := c.PostForm("userId")
-	fileName := c.PostForm("fileName")
-	file, err := c.FormFile("file")
+	file, header, err := c.Request.FormFile("file")
+	// 1、multipart.File 是文件对象
+	// 2、multipart.FileHeader文件头部包含了一些基本信息
+	/*
+	type FileHeader struct {
+		Filename string                 //文件全称，带扩展名
+		Header   textproto.MIMEHeader   //MIME信息
+		Size     int64                  //文件大小,单位bit
+		content []byte                  //文件内容,类型[]byte
+		tmpfile string                  //临时文件
+	}
+	*/
 	if err != nil {
 		msg := "get form err: " + err.Error()
 		response.Fail(c, gin.H{}, msg)
-		// c.JSON(http.StatusBadRequest, gin.H{"code":400,"msg":msg})
 		return
 	}
 
-	// 将*multipart.FileHeader转成*os.File
-	_file, _ := file.Open()
-	defer _file.Close()
+	buffer := make([]byte, header.Size)
+	// 丢弃读取字节数
+	_, err = file.Read(buffer)
 
-	// 读取文件存为[]uint8
-	fileData, _ := ioutil.ReadAll(_file)
-
-	// 将[]uint8转成base64
-	bs64 := base64.StdEncoding.EncodeToString([]byte(fileData))
+	if err != nil {
+		msg := "read file fail, err: " + err.Error()
+		response.Fail(c, gin.H{}, msg)
+		return
+	}
+	// 将[]byte转成base64
+	bs64 := base64.StdEncoding.EncodeToString(buffer)
 
 	var user model.User
 	DB.First(&user, userId)
 
 	if user.ID == 0 {
 		response.Fail(c, gin.H{}, "用户不存在")
-		// c.JSON(http.StatusUnauthorized, gin.H{"code":401,"msg":"权限不足"})
 		return
 	}
 
 	newArticle := model.Article{
-		Name: name,
 		UserId: userId,
-		FileName: fileName,
+		FileName: header.Filename,
 		FileStream: bs64,
 	}
 
 	DB.Create(&newArticle)
 
-	response.Success(c, gin.H{"name":name, "userId":userId, "fileName": fileName}, "上传成功")
+	response.Success(c, gin.H{"userId":userId, "fileName": header.Filename}, "上传成功")
 }
 
 func DownloadFile(c *gin.Context) {
@@ -75,7 +83,7 @@ func DownloadFile(c *gin.Context) {
 		response.Fail(c, gin.H{}, msg)
 	}
 
-	savepath := viper.GetString("filesavepath.path") + "/" + article.FileName + ".txt"
+	savepath := viper.GetString("filesavepath.path") + "/" + article.FileName
 	err = ioutil.WriteFile(savepath, bytes, 0666)
 
 	if err != nil {
