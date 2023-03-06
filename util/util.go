@@ -31,3 +31,9 @@ func RandomString(n int) string {
 
 // 	return bs64
 // }
+
+func CheckErr(err error){
+	if err != nil {
+		panic(err)
+	}
+}
