@@ -39,7 +39,7 @@ func Register(c *gin.Context) {
 		return
 	}
 	//创建用户
-	hasedPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	if err != nil {
 		response.Response(c, http.StatusInternalServerError, 500, nil, "加密失败！")
 		return
@@ -47,7 +47,7 @@ func Register(c *gin.Context) {
 	newUser := model.User{
 		Name:      name,
 		Telephone: telephone,
-		Password:  string(hasedPassword),
+		Password:  string(hashedPassword),
 	}
 
 	DB.Create(&newUser)
@@ -80,6 +80,7 @@ func Login(c *gin.Context) {
 		response.Response(c, http.StatusUnprocessableEntity, 422, nil, "用户不存在")
 		return
 	}
+
 	//判断密码是否正确
 	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(password)); err != nil {
 		response.Response(c, 400, 400, nil, "密码错误")
@@ -119,14 +120,19 @@ func RePassword(c *gin.Context) {
 	DB := common.GetDB()
 	user, _ := c.Get("user")
 	newPwd := c.PostForm("newPwd")
+	if len(newPwd) <= 6 {
+		response.Fail(c, gin.H{}, "密码长度过短")
+		return
+	}
+
 	user1 := user.(model.User)
-	hasedPassword, err := bcrypt.GenerateFromPassword([]byte(newPwd), bcrypt.DefaultCost)
+	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(newPwd), bcrypt.DefaultCost)
 	if err != nil {
 		response.Fail(c, gin.H{}, "加密失败")
 		return
 	}
 
-	DB.Model(&model.User{}).Where("id = ?", user1.ID).Update("password", string(hasedPassword))
+	DB.Model(&model.User{}).Where("id = ?", user1.ID).Update("password", string(hashedPassword))
 	response.Success(c, gin.H{}, "修改成功")
 }
 
