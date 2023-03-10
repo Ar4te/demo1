@@ -115,6 +115,21 @@ func ReName(c *gin.Context) {
 	response.Success(c, gin.H{"newName": newName}, "修改成功")
 }
 
+func RePassword(c *gin.Context) {
+	DB := common.GetDB()
+	user, _ := c.Get("user")
+	newPwd := c.PostForm("newPwd")
+	user1 := user.(model.User)
+	hasedPassword, err := bcrypt.GenerateFromPassword([]byte(newPwd), bcrypt.DefaultCost)
+	if err != nil {
+		response.Fail(c, gin.H{}, "加密失败")
+		return
+	}
+
+	DB.Model(&model.User{}).Where("id = ?", user1.ID).Update("password", string(hasedPassword))
+	response.Success(c, gin.H{}, "修改成功")
+}
+
 func isTelephoneExist(db *gorm.DB, telephone string) bool {
 	var user model.User
 	db.Where("telephone = ?", telephone).First(&user)
