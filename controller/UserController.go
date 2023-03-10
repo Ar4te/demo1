@@ -1,20 +1,19 @@
 package controller
 
 import (
+	"ginDemo/common"
+	"ginDemo/dto"
+	"ginDemo/model"
+	"ginDemo/response"
+	"ginDemo/util"
 	"github.com/gin-gonic/gin"
 	"github.com/jinzhu/gorm"
-	"log"
-	"ginDemo/model"
-	"ginDemo/common"
-	"ginDemo/util"
 	"golang.org/x/crypto/bcrypt"
-	"ginDemo/dto"
-	"ginDemo/response"
+	"log"
 	"net/http"
 )
 
-
-func Register (c *gin.Context){
+func Register(c *gin.Context) {
 	DB := common.GetDB()
 	//获取参数
 	name := c.PostForm("name")
@@ -45,19 +44,19 @@ func Register (c *gin.Context){
 		response.Response(c, http.StatusInternalServerError, 500, nil, "加密失败！")
 		return
 	}
-	newUser := model.User {
-		Name: name,
+	newUser := model.User{
+		Name:      name,
 		Telephone: telephone,
-		Password: string(hasedPassword),
+		Password:  string(hasedPassword),
 	}
 
 	DB.Create(&newUser)
-	
+
 	response.Success(c, nil, "注册成功")
 	log.Println(name, telephone, password)
 }
 
-func Login (c *gin.Context){
+func Login(c *gin.Context) {
 	DB := common.GetDB()
 	//获取参数
 	// name := c.PostForm("name")
@@ -96,17 +95,28 @@ func Login (c *gin.Context){
 	}
 
 	//返回结果
-	response.Success(c, gin.H{"token":token}, "登陆成功")
+	response.Success(c, gin.H{"token": token}, "登陆成功")
 }
 
 func Info(c *gin.Context) {
 	user, _ := c.Get("user")
 
-	c.JSON(200, gin.H{"code":200, "data": gin.H{"user":dto.ToUserDto(user.(model.User))}})
+	c.JSON(200, gin.H{"code": 200, "data": gin.H{"user": dto.ToUserDto(user.(model.User))}})
+}
+
+func ReName(c *gin.Context) {
+	DB := common.GetDB()
+	user, _ := c.Get("user")
+	newName := c.PostForm("newName")
+	user1 := user.(model.User)
+
+	DB.Model(&model.User{}).Where("id = ?", user1.ID).Update("name", newName)
+
+	response.Success(c, gin.H{"newName": newName}, "修改成功")
 }
 
 func isTelephoneExist(db *gorm.DB, telephone string) bool {
-	var user model.User 
+	var user model.User
 	db.Where("telephone = ?", telephone).First(&user)
 	if user.ID != 0 {
 		return true
