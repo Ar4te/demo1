@@ -1,11 +1,11 @@
 package middleware
 
 import (
-	"github.com/gin-gonic/gin"
-	"net/http"
-	"strings"
 	"ginDemo/common"
 	"ginDemo/model"
+	"ginDemo/response"
+	"github.com/gin-gonic/gin"
+	"strings"
 )
 
 func AuthMiddleware() gin.HandlerFunc {
@@ -16,7 +16,7 @@ func AuthMiddleware() gin.HandlerFunc {
 		// validate token format
 		// strings.HasPrefix(), 以什么开头
 		if tokenString == "" || !strings.HasPrefix(tokenString, "Bearer ") {
-			c.JSON(http.StatusUnauthorized, gin.H{"code":401,"msg":"权限不足"})
+			response.Fail(c, gin.H{"code": 401, "msg": "权限不足"}, "权限不足")
 			// 抛弃这次请求
 			c.Abort()
 			return
@@ -26,7 +26,7 @@ func AuthMiddleware() gin.HandlerFunc {
 		tokenString = tokenString[7:]
 		token, claims, err := common.ParseToken(tokenString)
 		if err != nil || !token.Valid {
-			c.JSON(http.StatusUnauthorized, gin.H{"code":401,"msg":"权限不足"})
+			response.Fail(c, gin.H{"code": 401, "msg": "权限不足"}, "权限不足")
 			// 抛弃这次请求
 			c.Abort()
 			return
@@ -40,7 +40,7 @@ func AuthMiddleware() gin.HandlerFunc {
 
 		// 用户不存在
 		if user.ID == 0 {
-			c.JSON(http.StatusUnauthorized, gin.H{"code":401,"msg":"权限不足"})
+			response.Fail(c, gin.H{"code": 401, "msg": "权限不足"}, "权限不足")
 			// 抛弃这次请求
 			c.Abort()
 			return
