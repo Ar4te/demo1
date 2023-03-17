@@ -136,6 +136,16 @@ func RePassword(c *gin.Context) {
 	response.Success(c, gin.H{}, "修改成功")
 }
 
+func TestId(c *gin.Context) {
+	s := common.Snowflake{NodeId: 1}
+	id, err := s.NextId()
+	if err != nil {
+		log.Println(err.Error())
+	}
+
+	log.Println(id)
+}
+
 func isTelephoneExist(db *gorm.DB, telephone string) bool {
 	var user model.User
 	db.Where("telephone = ?", telephone).First(&user)

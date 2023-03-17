@@ -26,6 +26,7 @@ func AuthMiddleware() gin.HandlerFunc {
 		tokenString = tokenString[7:]
 		token, claims, err := common.ParseToken(tokenString)
 		if err != nil || !token.Valid {
+
 			response.Fail(c, gin.H{"code": 401, "msg": "权限不足"}, "权限不足")
 			// 抛弃这次请求
 			c.Abort()
