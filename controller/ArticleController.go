@@ -1,29 +1,30 @@
 package controller
 
 import (
-	"github.com/gin-gonic/gin"
-	"ginDemo/response"
+	"encoding/base64"
 	"ginDemo/common"
 	"ginDemo/model"
-	"io/ioutil"
-	"encoding/base64"
+	"ginDemo/response"
+	"github.com/gin-gonic/gin"
 	"github.com/spf13/viper"
+	"io/ioutil"
+	"time"
 )
 
-func UploadFile (c *gin.Context) {
+func UploadFile(c *gin.Context) {
 	DB := common.GetDB()
 	userId := c.PostForm("userId")
 	file, header, err := c.Request.FormFile("file")
 	// 1、multipart.File 是文件对象
 	// 2、multipart.FileHeader文件头部包含了一些基本信息
 	/*
-	type FileHeader struct {
-		Filename string                 //文件全称，带扩展名
-		Header   textproto.MIMEHeader   //MIME信息
-		Size     int64                  //文件大小,单位bit
-		content []byte                  //文件内容,类型[]byte
-		tmpfile string                  //临时文件
-	}
+		type FileHeader struct {
+			Filename string                 //文件全称，带扩展名
+			Header   textproto.MIMEHeader   //MIME信息
+			Size     int64                  //文件大小,单位bit
+			content []byte                  //文件内容,类型[]byte
+			tmpfile string                  //临时文件
+		}
 	*/
 	if err != nil {
 		msg := "get form err: " + err.Error()
@@ -51,15 +52,19 @@ func UploadFile (c *gin.Context) {
 		return
 	}
 
+	id, _ := common.Generate()
+
 	newArticle := model.Article{
-		UserId: userId,
-		FileName: header.Filename,
+		ID:         id,
+		CreatedAt:  time.Now(),
+		UserId:     userId,
+		FileName:   header.Filename,
 		FileStream: bs64,
 	}
 
 	DB.Create(&newArticle)
 
-	response.Success(c, gin.H{"userId":userId, "fileName": header.Filename}, "上传成功")
+	response.Success(c, gin.H{"userId": userId, "fileName": header.Filename}, "上传成功")
 }
 
 func DownloadFile(c *gin.Context) {
@@ -91,5 +96,17 @@ func DownloadFile(c *gin.Context) {
 		response.Fail(c, gin.H{}, msg)
 	}
 
-	response.Success(c, gin.H{}, "下载成功")
+	response.Success(c, gin.H{"filename": article.FileName, "filestream": article.FileStream}, "下载成功")
+}
+
+func GetAllArticle(c *gin.Context) {
+	DB := common.GetDB()
+
+	var articles []model.Article
+	res := DB.Table("articles").Select([]string{"id", "file_name", "parent_article_id", "created_at", "user_id"}).Find(&articles)
+
+	if res.Error != nil {
+		response.Fail(c, gin.H{}, res.Error.Error())
+	}
+	response.Success(c, gin.H{"dataCount": res.RowsAffected, "data": res.Value}, "true")
 }

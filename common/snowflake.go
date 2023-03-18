@@ -6,52 +6,90 @@ import (
 	"time"
 )
 
+const (
+	nodeBits           = 10 // 节点ID所占位数
+	sequenceBits       = 12 // 序列号所占位数
+	nodeMax            = -1 ^ (-1 << nodeBits)
+	sequenceMask       = -1 ^ (-1 << sequenceBits)
+	timeShift          = nodeBits + sequenceBits
+	nodeShift          = sequenceBits
+	twepoch      int64 = 1288834974657 // 统一起始时间（毫秒）：2014-01-01 00:00:00.000
+)
+
 type Snowflake struct {
-	lastTimestamp int64      //上次生成ID的时间戳
-	NodeId        int64      //节点ID
-	sequence      int64      //序列号
-	mutex         sync.Mutex //互斥锁，用于保证并发安全
+	mu        sync.Mutex
+	timestamp int64   //时间戳（毫秒）
+	nodeId    int64   //节点ID
+	sequence  int64   //序列号
+	cache     []int64 //循环缓冲区，用于缓存生成的ID
+	cacheSize int     //缓存池大小
+	cacheIdx  int     //缓存池当前位置
 }
 
-// 生成唯一ID函数
-func (s *Snowflake) NextId() (int64, error) {
-	s.mutex.Lock() //加锁
-	defer s.mutex.Unlock()
+func NewSnowflake(nodeId int64, cacheSize int) (*Snowflake, error) {
+	//节点ID异常
+	if nodeId < 0 || nodeId > nodeMax {
+		return nil, errors.New("Invalid Node number")
+	}
+	return &Snowflake{
+		mu:        sync.Mutex{},
+		timestamp: 0,
+		nodeId:    nodeId,
+		sequence:  0,
+		cache:     make([]int64, cacheSize),
+		cacheSize: cacheSize,
+	}, nil
+}
 
-	timestamp := time.Now().UnixNano() / 1000000 //获取当前的时间戳（毫秒级）
+func (sf *Snowflake) NextId() (int64, error) {
+	sf.mu.Lock()
+	defer sf.mu.Unlock()
 
-	//如果当前的时间戳小于上次生成ID的时间戳，则说明出现了时钟回拨错误
-	if timestamp < s.lastTimestamp {
-		return 0, errors.New("出现时钟回拨错误")
+	now := time.Now().UnixNano() / 1000000
+
+	if now < sf.timestamp {
+		return 0, errors.New("Invalid timestamp")
 	}
 
-	//如果当前的时间戳与上次生成ID的时间戳相同，则需要增加序列号
-	if timestamp == s.lastTimestamp {
-		s.sequence = (s.sequence + 1) & 0xfff //序列号最大为4095（12位二进制数）
-		//序列号达到最大值时，等待下一毫秒
-		if s.sequence == 0 {
-			timestamp = s.waitNextMillis(timestamp)
+	if now == sf.timestamp {
+		sf.sequence = (sf.sequence + 1) & sequenceMask
+		if sf.sequence == 0 {
+			waitDuration := twepoch + (now-sf.timestamp)*2
+			time.Sleep(time.Duration(waitDuration-now) * time.Millisecond)
+			now = time.Now().UnixNano() / 1000000
 		}
-		//如果当前的时间戳比上次生成ID的时间戳大，则序列号归零
 	} else {
-		s.sequence = 0
+		sf.sequence = 0
 	}
 
-	//更新上次生成ID的时间戳
-	s.lastTimestamp = timestamp
+	sf.timestamp = now
+	id := (now-twepoch)<<timeShift | (sf.nodeId << nodeShift) | sf.sequence
 
-	//生成ID，1577808000000是2020年1月1日的时间戳，左移22位是因为41位的时间戳中已经占用了22位
-	id := ((timestamp - 1577808000000) << 22) | (s.NodeId << 12) | s.sequence
-
+	if sf.cache[sf.cacheIdx] != 0 {
+		id = sf.cache[sf.cacheIdx]
+		sf.cache[sf.cacheIdx] = 0
+		sf.cacheIdx = (sf.cacheIdx + 1) % sf.cacheSize
+	} else {
+		for i := 0; i < sf.cacheSize; i++ {
+			sf.cache[i] = (now-twepoch)<<timeShift | (sf.nodeId << nodeShift) | int64((i + 1))
+		}
+		id = sf.cache[0]
+		sf.cacheIdx = 1
+	}
 	return id, nil
 }
 
-// 等待下一毫秒函数
-func (s *Snowflake) waitNextMillis(currentTimestamp int64) int64 {
-	//相当于while(currentTimestamp != s.lastTimestamp)， 如果相等，休眠1ms，再获取毫秒级时间戳
-	for currentTimestamp == s.lastTimestamp {
-		time.Sleep(time.Millisecond)
-		currentTimestamp = time.Now().UnixNano() / 1000000
+func Generate() (uint64, error) {
+	sf, err := NewSnowflake(1, 1024)
+
+	if err != nil {
+		return 0, err
 	}
-	return currentTimestamp
+	id, err := sf.NextId()
+
+	if err != nil {
+		return 0, err
+	}
+
+	return uint64(id), nil
 }

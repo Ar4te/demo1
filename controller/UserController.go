@@ -11,6 +11,7 @@ import (
 	"golang.org/x/crypto/bcrypt"
 	"log"
 	"net/http"
+	"time"
 )
 
 func Register(c *gin.Context) {
@@ -44,7 +45,10 @@ func Register(c *gin.Context) {
 		response.Response(c, http.StatusInternalServerError, 500, nil, "加密失败！", false)
 		return
 	}
+	id, _ := common.Generate()
 	newUser := model.User{
+		ID:        id,
+		CreatedAt: time.Now(),
 		Name:      name,
 		Telephone: telephone,
 		Password:  string(hashedPassword),
@@ -137,12 +141,11 @@ func RePassword(c *gin.Context) {
 }
 
 func TestId(c *gin.Context) {
-	s := common.Snowflake{NodeId: 1}
-	id, err := s.NextId()
-	if err != nil {
-		log.Println(err.Error())
-	}
+	id, err := common.Generate()
 
+	if err != nil {
+		return
+	}
 	log.Println(id)
 }
 

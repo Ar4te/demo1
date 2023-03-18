@@ -1,15 +1,15 @@
 package common
 
 import (
-	"github.com/dgrijalva/jwt-go"
 	"ginDemo/model"
+	"github.com/dgrijalva/jwt-go"
 	"time"
 )
 
 var jwtKey = []byte("a_secret_crect")
 
 type Claims struct {
-	UserId uint
+	UserId uint64
 	jwt.StandardClaims
 }
 
@@ -20,10 +20,10 @@ func ReleaseToken(user model.User) (string, error) {
 	claims := &Claims{
 		UserId: user.ID,
 		StandardClaims: jwt.StandardClaims{
-			ExpiresAt:expirationTime.Unix(),
-			IssuedAt: time.Now().Unix(),
-			Issuer: "Arete",
-			Subject:"user token",
+			ExpiresAt: expirationTime.Unix(),
+			IssuedAt:  time.Now().Unix(),
+			Issuer:    "Arete",
+			Subject:   "user token",
 		},
 	}
 
@@ -39,9 +39,9 @@ func ReleaseToken(user model.User) (string, error) {
 func ParseToken(tokenString string) (*jwt.Token, *Claims, error) {
 	claims := &Claims{}
 
-	token, err := jwt.ParseWithClaims(tokenString, claims, func(token *jwt.Token)(i interface{}, err error) {
+	token, err := jwt.ParseWithClaims(tokenString, claims, func(token *jwt.Token) (i interface{}, err error) {
 		return jwtKey, nil
 	})
 
-	return token,claims,err
+	return token, claims, err
 }

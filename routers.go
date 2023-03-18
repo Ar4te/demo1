@@ -16,5 +16,6 @@ func CollectRoute(r *gin.Engine) *gin.Engine {
 
 	r.POST("/api/article/upload", controller.UploadFile)
 	r.GET("/api/article/download", controller.DownloadFile)
+	r.GET("api/article/getall", middleware.AuthMiddleware(), controller.GetAllArticle)
 	return r
 }

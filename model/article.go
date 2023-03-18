@@ -1,13 +1,16 @@
 package model
 
 import (
-	"github.com/jinzhu/gorm"
-	_"github.com/go-sql-driver/mysql"
+	_ "github.com/go-sql-driver/mysql"
+	"time"
 )
 
 type Article struct {
-	gorm.Model
-	FileName string `gorm:"type:varchar(255);not null;"`
-	UserId string `gorm:"type:varchar(255);not null"`
-	FileStream string `gorm:"type:longtext"`
+	ID              uint64 `gorm:"PrimaryKey"`
+	CreatedAt       time.Time
+	UpdatedAt       time.Time
+	FileName        string `gorm:"type:varchar(255);not null;"`
+	UserId          string `gorm:"type:varchar(255);not null"`
+	FileStream      string `gorm:"type:longtext"`
+	ParentArticleId string `gorm:"type:varchar(255)"`
 }
