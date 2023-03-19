@@ -2,16 +2,19 @@ package dto
 
 import (
 	"ginDemo/model"
+	"strconv"
 )
 
 type UserDto struct {
-	Name string `json:"name"`
+	Id        string `json:"Id"`
+	Name      string `json:"name"`
 	Telephone string `json:"telephone"`
 }
 
 func ToUserDto(user model.User) UserDto {
 	return UserDto{
-		Name: user.Name,
+		Id:        strconv.FormatInt(int64(user.ID), 10),
+		Name:      user.Name,
 		Telephone: user.Telephone,
 	}
 }

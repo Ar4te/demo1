@@ -14,6 +14,7 @@ import (
 func UploadFile(c *gin.Context) {
 	DB := common.GetDB()
 	userId := c.PostForm("userId")
+	description := c.PostForm("description")
 	file, header, err := c.Request.FormFile("file")
 	// 1、multipart.File 是文件对象
 	// 2、multipart.FileHeader文件头部包含了一些基本信息
@@ -55,13 +56,13 @@ func UploadFile(c *gin.Context) {
 	id, _ := common.Generate()
 
 	newArticle := model.Article{
-		ID:         id,
-		CreatedAt:  time.Now(),
-		UserId:     userId,
-		FileName:   header.Filename,
-		FileStream: bs64,
+		ID:          id,
+		CreatedAt:   time.Now(),
+		UserId:      userId,
+		FileName:    header.Filename,
+		FileStream:  bs64,
+		Description: description,
 	}
-
 	DB.Create(&newArticle)
 
 	response.Success(c, gin.H{"userId": userId, "fileName": header.Filename}, "上传成功")
@@ -103,7 +104,7 @@ func GetAllArticle(c *gin.Context) {
 	DB := common.GetDB()
 
 	var articles []model.Article
-	res := DB.Table("articles").Select([]string{"id", "file_name", "parent_article_id", "created_at", "user_id"}).Find(&articles)
+	res := DB.Table("articles").Select([]string{"id", "file_name", "parent_article_id", "created_at", "user_id", "description"}).Find(&articles)
 
 	if res.Error != nil {
 		response.Fail(c, gin.H{}, res.Error.Error())

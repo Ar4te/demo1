@@ -13,4 +13,5 @@ type Article struct {
 	UserId          string `gorm:"type:varchar(255);not null"`
 	FileStream      string `gorm:"type:longtext"`
 	ParentArticleId string `gorm:"type:varchar(255)"`
+	Description     string `gorm:"type:longtext"`
 }

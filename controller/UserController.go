@@ -106,7 +106,8 @@ func Login(c *gin.Context) {
 func Info(c *gin.Context) {
 	user, _ := c.Get("user")
 
-	c.JSON(200, gin.H{"code": 200, "data": gin.H{"user": dto.ToUserDto(user.(model.User))}})
+	//c.JSON(200, gin.H{"code": 200, "data": gin.H{"user": dto.ToUserDto(user.(model.User))}})
+	response.Success(c, gin.H{"user": dto.ToUserDto(user.(model.User))}, "获取成功")
 }
 
 func ReName(c *gin.Context) {
