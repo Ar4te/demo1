@@ -3,11 +3,13 @@ package controller
 import (
 	"encoding/base64"
 	"ginDemo/common"
+	"ginDemo/dto"
 	"ginDemo/model"
 	"ginDemo/response"
 	"github.com/gin-gonic/gin"
 	"github.com/spf13/viper"
 	"io/ioutil"
+	"log"
 	"time"
 )
 
@@ -109,5 +111,36 @@ func GetAllArticle(c *gin.Context) {
 	if res.Error != nil {
 		response.Fail(c, gin.H{}, res.Error.Error())
 	}
-	response.Success(c, gin.H{"dataCount": res.RowsAffected, "data": res.Value}, "true")
+
+	response.Success(c, gin.H{"dataCount": res.RowsAffected, "data": dto.ToArticlesDto(res.Value.(*[]model.Article))}, "true")
+}
+
+func UpdateFile(c *gin.Context) {
+	DB := common.GetDB()
+	fileId := c.PostForm("fileId")
+	description := c.PostForm("description")
+
+	res := DB.Model(&model.Article{}).Where("id = ?", fileId).Update("description", description)
+
+	if res.Error != nil {
+		response.Fail(c, gin.H{}, res.Error.Error())
+		return
+	}
+
+	response.Success(c, gin.H{}, "操作成功")
+}
+
+func DeleteFile(c *gin.Context) {
+	DB := common.GetDB()
+	fileId := c.Query("fileId")
+	log.Println(fileId)
+	res := DB.Delete(&model.Article{}, "id = ?", fileId)
+
+	log.Println(res)
+
+	if res.Error != nil {
+		response.Fail(c, gin.H{}, res.Error.Error())
+	}
+
+	response.Success(c, gin.H{}, "操作完成")
 }
