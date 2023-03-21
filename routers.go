@@ -3,10 +3,13 @@ package main
 import (
 	"ginDemo/controller"
 	"ginDemo/middleware"
+	"github.com/didip/tollbooth"
 	"github.com/gin-gonic/gin"
 )
 
 func CollectRoute(r *gin.Engine) *gin.Engine {
+	lmt := tollbooth.NewLimiter(1, nil)
+	lmt.SetMessage("服务繁忙，请稍后再试。。。")
 	r.POST("/api/auth/register", controller.Register)
 	r.POST("/api/auth/login", controller.Login)
 	r.GET("/api/auth/info", middleware.AuthMiddleware(), controller.Info)
@@ -16,7 +19,7 @@ func CollectRoute(r *gin.Engine) *gin.Engine {
 
 	r.POST("/api/article/upload", controller.UploadFile)
 	r.GET("/api/article/download", controller.DownloadFile)
-	r.GET("/api/article/getAll", middleware.AuthMiddleware(), controller.GetAllArticle)
+	r.GET("/api/article/getAll", middleware.LimitHandler(lmt), middleware.AuthMiddleware(), controller.GetAllArticle)
 	r.POST("/api/article/updateFile", middleware.AuthMiddleware(), controller.UpdateFile)
 	r.DELETE("/api/article/delFile", middleware.AuthMiddleware(), controller.DeleteFile)
 	return r
