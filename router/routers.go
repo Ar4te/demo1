@@ -61,5 +61,10 @@ func CollectRoute(r *gin.Engine) *gin.Engine {
 			c.ProtoBuf(200, data)
 		})
 	}
+
+	// topic
+	{
+		r.POST("/api/topic/pubtopic", controller.PubTopic)
+	}
 	return r
 }
